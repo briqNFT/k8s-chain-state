@@ -21,13 +21,20 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dependencies = []
+dependencies = [
+  "kubernetes",
+  "pydantic",
+  "starknet-py",
+]
 dynamic = ["version"]
 
 [project.urls]
-Documentation = "https://github.com/unknown/k8s-chain-state#readme"
-Issues = "https://github.com/unknown/k8s-chain-state/issues"
-Source = "https://github.com/unknown/k8s-chain-state"
+Documentation = "https://github.com/briqNFT/k8s-chain-state#readme"
+Issues = "https://github.com/briqNFT/k8s-chain-state/issues"
+Source = "https://github.com/briqNFT/k8s-chain-state"
+
+[project.scripts]
+k8s-chain-state = "k8s_chain_state.cli"
 
 [tool.hatch.version]
 path = "k8s_chain_state/__about__.py"
@@ -37,17 +44,12 @@ python="3.9"
 dependencies = [
   "pytest",
   "pytest-cov",
-  "kubernetes",
-  "pydantic",
-  "kopf",
-  "starknet-py",
 ]
+
 [tool.hatch.envs.default.scripts]
+run = "python k8s_chain_state/cli.py {args}"
 cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=k8s_chain_state --cov=tests {args}"
 no-cov = "cov --no-cov {args}"
-
-[[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
 
 [tool.coverage.run]
 branch = true

@@ -1,10 +1,7 @@
-import sys
 from typing import Optional
 from pydantic import BaseModel
 from kubernetes import client, config as k8s_config
 from k8s_chain_state import config
-
-
 from enum import Enum
 
 
@@ -16,8 +13,11 @@ class ContractState(str, Enum):
 
 class ContractSpec(BaseModel):
     address: str
-    class_hash: Optional[str] = None
     chain: str
+    # Class hash of the contract
+    class_hash: Optional[str] = None
+    # Implementation class hash if the contract is a proxy.
+    implem_hash: Optional[str] = None
 
 
 def create_crd():
@@ -85,6 +85,20 @@ def create_crd():
                             "type": "string",
                             "jsonPath": ".spec.address",
                             "description": "The address of the contract"
+                        },
+                        {
+                            "name": "Class Hash",
+                            "type": "string",
+                            "jsonPath": ".spec.class_hash",
+                            "description": "The class hash of the contract",
+                            "priority": 2,
+                        },
+                        {
+                            "name": "Implementation",
+                            "type": "string",
+                            "jsonPath": ".spec.implem_hash",
+                            "description": "The implementation class hash of the contract",
+                            "priority": 2,
                         }
                     ]
                 }
@@ -93,6 +107,17 @@ def create_crd():
     }
 
     try:
+        custom_object_api = client.CustomObjectsApi()
+        try:
+            contracts = custom_object_api.list_namespaced_custom_object(
+                group=config.group, version=config.version, namespace=config.namespace, plural=config.plural
+            )
+            if len(contracts['items']) > 0:
+                print("Cannot delete existing CRD while contracts exist.")
+                return
+        except:
+            print("didn't find any contracts")
+            pass
         api_instance.delete_custom_resource_definition(f"{config.plural}.{config.group}")
     except:
         pass

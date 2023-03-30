@@ -1,47 +1,56 @@
+import argparse
+import asyncio
+import logging
 import sys
-from kubernetes import client, config as k8s_config
-from k8s_chain_state.crd import ContractSpec, create_crd
-from k8s_chain_state import config
+from k8s_chain_state.contracts import create_contract, get_contracts, init_starknet
+from kubernetes import config as k8s_config
+
+from k8s_chain_state.crd import create_crd
+
+logger = logging.getLogger(__name__)
+
+def setup_logging():
+    import sys
+    import os
+
+    logs = logging.getLogger()
+    logs.setLevel(logging._nameToLevel[os.getenv('LOGLEVEL') or "INFO"])
+
+    ch = logging.StreamHandler()
+    ch.setStream(sys.stderr)
+    logs.addHandler(ch)
+    logs.setLevel(logging.INFO)
 
 
-def create_contract(chain: str, name: str, address: str):
-    k8s_config.load_kube_config()
+def main():
+    parser = argparse.ArgumentParser(description="Manage contracts on StarkNet")
+    subparsers = parser.add_subparsers(dest="command")
 
-    custom_object_api = client.CustomObjectsApi()
+    subparsers.add_parser("crd", help="Create/update custom resource definition")
 
-    body = {
-        "apiVersion": f"{config.group}/{config.version}",
-        "kind": "Contract",
-        "metadata": {
-            "name": name
-        },
-        "spec": ContractSpec(address=address, chain=chain).dict()
-    }
+    contract_parser = subparsers.add_parser("contract", help="Create a contract")
+    contract_parser.add_argument("chain", help="Chain name, starknet-testnet or starknet-mainnet")
+    contract_parser.add_argument("name", help="Contract name")
+    contract_parser.add_argument("address", help="Contract address")
 
-    try:
-        custom_object_api.create_namespaced_custom_object(
-            config.group, config.version, config.namespace, config.plural, body
-        )
-        print(f"Contract {name} created")
-    except client.ApiException as e:
-        print(f"Error creating contract: {e}")
+    subparsers.add_parser("list", help="List contracts")
+
+    args = parser.parse_args()
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Usage:")
-        print("  python create_contract.py crd")
-        print("  python create_contract.py contract <chain> <name> <address> <class_hash>")
+    loop = asyncio.get_event_loop()
+    if args.command == "crd":
+        create_crd()
+    elif args.command == "contract":
+        k8s_config.load_kube_config()
+        loop.run_until_complete(create_contract(init_starknet(args.chain), args.chain, args.name, args.address))
+    elif args.command == "list":
+        k8s_config.load_kube_config()
+        loop.run_until_complete(get_contracts())
+    else:
+        parser.print_help()
         sys.exit(1)
 
-    command = sys.argv[1]
-
-    if command == "crd":
-        create_crd()
-    elif command == "contract":
-        if len(sys.argv) != 6:
-            print("Usage:")
-            print("  python create_contract.py contract<chain> <name> <address>")
-            sys.exit(1)
-        chain, name, address = sys.argv[2:5]
-        create_contract(chain, name, address)
+if __name__ == "__main__":
+    setup_logging()
+    main()
