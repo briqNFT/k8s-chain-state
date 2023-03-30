@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "k8s-chain-state"
 description = ''
 readme = "README.md"
-requires-python = ">=3.7,<=3.9"
+requires-python = ">=3.7,<3.10"
 license = "MIT"
 keywords = []
 authors = [
@@ -34,7 +34,7 @@ Issues = "https://github.com/briqNFT/k8s-chain-state/issues"
 Source = "https://github.com/briqNFT/k8s-chain-state"
 
 [project.scripts]
-k8s-chain-state = "k8s_chain_state.cli"
+k8s-chain-state = "k8s_chain_state.cli:main"
 
 [tool.hatch.version]
 path = "k8s_chain_state/__about__.py"
