@@ -23,7 +23,7 @@ def setup_logging():
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Manage contracts on StarkNet")
+    parser = argparse.ArgumentParser(description="Store deployed starknet contracts on kubernetes")
     subparsers = parser.add_subparsers(dest="command")
 
     subparsers.add_parser("crd", help="Create/update custom resource definition")
